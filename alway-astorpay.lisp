@@ -18,52 +18,69 @@
   (declare first-vowel-index (String -> UFix))
   (define (first-vowel-index word)
     "Returns the index of the first vowel in the word. Returns the length of the string if there is no vowel."
-    (match (iter:index-of! (fn (x) (list:member x (make-list #\a #\e #\i #\o #\u)))
-			   (str:chars word))
-      ((Some x)
-       x)
-      ((None)
-       (match (iter:index-of! (fn (x) (== x #\y))
-			      (str:chars word))
-	 ((Some x)
-	  x)
-	 ((None)
-	  (str:length word))))))
+    (unwrap-or-else
+     (fn (x) x)
+     (fn ()
+       (unwrap-or-else
+	(fn (x) x)
+	(fn () (str:length word))
+	(iter:index-of! (fn (x) (== x #\y))
+			(str:chars word))))
+     (iter:index-of! (fn (x) (list:member x (make-list #\a #\e #\i #\o #\u)))
+		     (str:chars word))))
   
-  (define (format-word word)
-    "Formats a word in piglatin any start."
+  (define (%fmt-word word)
     (let idx = (first-vowel-index word))
     (match (the Integer (into idx))
       (0 (str:concat word "way"))
       (_ (let ((split (str:split idx word)))
 	   (str:concat (snd split) (str:concat (fst split) "ay"))))))
 
-  (declare %fmt-word ((List Char) -> List Char))
-  (define (%fmt-word word)
-    "Formats a word for sentence formatting."
-    (the (List Char) (iter:collect! (str:chars (format-word (into word))))))
+  (declare fmt-word ((List Char) -> List Char))
+  (define (fmt-word word)
+    "Formats a word to piglatin."
+    (the (List Char) (iter:collect! (str:chars (%fmt-word (into word))))))
 
-  (declare format-sentence (String -> String))
-  (define (format-sentence sentence)
-    "Formats a sentence into piglatin."
-    (let fragments = (cell:new Nil))
+  (define-type PLToken
+    "A Pig-Latin Token."
+    (PLWord (List Char))
+    (PLChar Char))
+
+  (declare parse (String -> (vec:Vector PLToken)))
+  (define (parse str)
+    "Formats a string into piglatin."
+    (let toks = (vec:new))
     (let current-fragment = (cell:new Nil))
-    (for c in (str:chars sentence)
+    (for c in (str:chars str)
 	 (cond ((list:member c (make-list #\- #\. #\, #\! #\* #\/ #\# #\SPACE #\NEWLINE))
 		(cond ((list:null? (cell:read current-fragment))
-		       (cell:push! fragments (make-list c))
+		       (vec:push! (PLChar c) toks)
 		       Unit)
 		      (True
-		       (cell:push! fragments (%fmt-word (list:reverse (cell:read current-fragment))))
+		       (vec:push! (PLWord (list:reverse (cell:read current-fragment))) toks)
 		       (cell:write! current-fragment Nil)
-		       (cell:push! fragments (make-list c))
+		       (vec:push! (PLChar c) toks)
 		       Unit)))
 	       (True
 		(cell:push! current-fragment c)
 		Unit)))
-
     (cond ((not (list:null? (cell:read current-fragment)))
-	   (cell:push! fragments
-		       (%fmt-word (list:reverse (cell:Read current-fragment))))))
+	   (vec:push! (PLWord (list:reverse (cell:Read current-fragment))) toks)
+	   Unit)
+	  (True
+	   Unit))
+    toks)
 
-    (into (list:concat (list:reverse (cell:read fragments))))))
+  (declare translate-token (PLToken -> (List Char)))
+  (define (translate-token tok)
+    (match tok
+      ((PLWord cs)
+       (fmt-word cs))
+      ((PLChar c)
+       (make-list c))))
+
+  (declare translate (String -> String))
+  (define (translate str)
+    "Translates a string into pig-latin."
+    (let toks = (parse str))
+    (into (list:concat (the (List (List Char)) (into (map translate-token toks)))))))
