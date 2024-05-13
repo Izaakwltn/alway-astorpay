@@ -18,16 +18,23 @@
   (declare first-vowel-index (String -> UFix))
   (define (first-vowel-index word)
     "Returns the index of the first vowel in the word. Returns the length of the string if there is no vowel."
-    (unwrap-or-else
-     (fn (x) x)
-     (fn ()
-       (unwrap-or-else
-	(fn (x) x)
-	(fn () (str:length word))
-	(iter:index-of! (fn (x) (== x #\y))
-			(str:chars word))))
-     (iter:index-of! (fn (x) (list:member x (make-list #\a #\e #\i #\o #\u)))
-		     (str:chars word))))
+    (let split = (str:split 1 word))
+    (cond ((and (== (fst split) "y")
+		(not (list:member (substring word 1 2) (make-list "a" "e" "i" "o" "u"))))
+	   0)
+	  ((list:member (fst split) (make-list "a" "e" "i" "o" "u"))
+	   0)
+	  (True
+	   (1+ (unwrap-or-else
+		(fn (x) x)
+		(fn ()
+		  (unwrap-or-else
+		   (fn (x) x)
+		   (fn () (str:length word))
+		   (iter:index-of! (fn (x) (== x #\y))
+				   (str:chars (snd split)))))
+		(iter:index-of! (fn (x) (list:member x (make-list #\a #\e #\i #\o #\u #\y)))
+				(str:chars (snd split))))))))
   
   (define (%fmt-word word)
     (let idx = (first-vowel-index word))
