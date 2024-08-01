@@ -6,6 +6,7 @@
   :description "Aay implesay igpay-atinlay eneratorgay, ittenwray inway oaltonCay"
   :author "Izaak Walton <izaakw@protonmail.com"
   :license "MIT"
+  :defsystem-depends-on (#:coalton-asdf)
   :depends-on (#:coalton)
   :serial t
-  :components ((:file "alway-astorpay")))
+  :components ((:coalton-file "alway-astorpay")))

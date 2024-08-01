@@ -1,22 +1,19 @@
-;;;; alway-astorpay.lisp
+;;;; alway-astorpay.coal
 ;;;;
 ;;;; opyrightCay aakIzay altonWay (C)ay 2024ay
 
-(defpackage #:alway-astorpay
-  (:use #:coalton
-	#:coalton-prelude)
-  (:local-nicknames (#:str #:coalton-library/string)
-		    (#:list #:coalton-library/list)
-		    (#:iter #:coalton-library/iterator)
-		    (#:vec #:coalton-library/vector)
-		    (#:cell #:coalton-library/cell)))
+(package alway-astorpay
+  (import
+   coalton-prelude
+   (coalton-library/string   as str)
+   (coalton-library/list     as list)
+   (coalton-library/iterator as iter)
+   (coalton-library/vector   as vec)
+   (coalton-library/cell     as cell)))
 
-(in-package #:alway-astorpay)
 
-(coalton-toplevel
-
-  (declare first-vowel-index (String -> UFix))
-  (define (first-vowel-index word)
+(declare first-vowel-index (String -> UFix))
+(define (first-vowel-index word)
     "Returns the index of the first vowel in the word. Returns the length of the string if there is no vowel."
     (let split = (str:split 1 word))
     (cond ((and (== (fst split) "y")
@@ -35,26 +32,27 @@
 				   (str:chars (snd split)))))
 		(iter:index-of! (fn (x) (list:member x (make-list #\a #\e #\i #\o #\u #\y)))
 				(str:chars (snd split))))))))
-  
-  (define (%fmt-word word)
-    (let idx = (first-vowel-index word))
-    (match (the Integer (into idx))
-      (0 (str:concat word "way"))
-      (_ (let ((split (str:split idx word)))
-	   (str:concat (snd split) (str:concat (fst split) "ay"))))))
 
-  (declare fmt-word ((List Char) -> List Char))
-  (define (fmt-word word)
-    "Formats a word to piglatin."
-    (the (List Char) (iter:collect! (str:chars (%fmt-word (into word))))))
 
-  (define-type PLToken
-    "A Pig-Latin Token."
-    (PLWord (List Char))
-    (PLChar Char))
+(define (%fmt-word word)
+  (let idx = (first-vowel-index word))
+  (match (the Integer (into idx))
+    (0 (str:concat word "way"))
+    (_ (let ((split (str:split idx word)))
+	 (str:concat (snd split) (str:concat (fst split) "ay"))))))
 
-  (declare parse (String -> (vec:Vector PLToken)))
-  (define (parse str)
+(declare fmt-word ((List Char) -> List Char))
+(define (fmt-word word)
+  "Formats a word to piglatin."
+  (the (List Char) (iter:collect! (str:chars (%fmt-word (into word))))))
+
+(define-type PLToken
+  "A Pig-Latin Token."
+  (PLWord (List Char))
+  (PLChar Char))
+
+(declare parse (String -> (vec:Vector PLToken)))
+(define (parse str)
     "Formats a string into piglatin."
     (let toks = (vec:new))
     (let current-fragment = (cell:new Nil))
@@ -78,16 +76,16 @@
 	   Unit))
     toks)
 
-  (declare translate-token (PLToken -> (List Char)))
-  (define (translate-token tok)
-    (match tok
-      ((PLWord cs)
-       (fmt-word cs))
-      ((PLChar c)
-       (make-list c))))
+(declare translate-token (PLToken -> (List Char)))
+(define (translate-token tok)
+  (match tok
+    ((PLWord cs)
+     (fmt-word cs))
+    ((PLChar c)
+     (make-list c))))
 
-  (declare translate (String -> String))
-  (define (translate str)
+(declare translate (String -> String))
+(define (translate str)
     "Translates a string into pig-latin."
     (let toks = (parse str))
-    (into (list:concat (the (List (List Char)) (into (map translate-token toks)))))))
+    (into (list:concat (the (List (List Char)) (into (map translate-token toks))))))
